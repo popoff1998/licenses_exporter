@@ -1,4 +1,4 @@
-# FlexLM Licenses to be monitored.
+# Licenses_exporter config file
 ---
 licenses:
   - name: MATLAB R2018b
