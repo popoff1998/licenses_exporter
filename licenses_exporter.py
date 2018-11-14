@@ -6,6 +6,7 @@ Tonin 2018. University of Cordoba
 import commands
 from prometheus_client import Gauge, start_http_server
 import time
+import sys
 import re
 import ruamel.yaml as yaml
 
@@ -22,6 +23,9 @@ class User(object):
 
     def printUser(self):
         print "\t",user.name," ",user.hostName," ",user.device," ",user.date
+
+    def printUserToError(self):
+        print >> sys.stderr, "\t",user.name," ",user.hostName," ",user.device," ",user.date
 
 class Feature(object):
     def __init__(self, name, app):
@@ -116,9 +120,13 @@ class App(object):
             self.parent.license_feature_issued.labels(app=feature.app,name=feature.name).set(feature.maxLicenses)
             self.parent.license_feature_used.labels(app=feature.app,name=feature.name).set(feature.inUse)
             for user in feature.userList:
-                self.parent.license_feature_used_users.labels(app=feature.app,name=feature.name,user=user.name,
-                                                              host=user.hostName,device=user.device).set(1)
-
+                try:
+                    self.parent.license_feature_used_users.labels(app=feature.app,name=feature.name,user=user.name,
+                                                                  host=user.hostName,device=user.device).set(1)
+                except:
+                    print >> sys.stderr, "Error en used_users.label"
+                    user.printUserToError()
+                    
 class Apps(object):
     def __init__(self,cfgFile):
         self.appList = []
