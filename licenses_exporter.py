@@ -22,10 +22,10 @@ class User(object):
         self.date = None
 
     def printUser(self):
-        print "\t",user.name," ",user.hostName," ",user.device," ",user.date
+        print "\t",self.name," ",self.hostName," ",self.device," ",self.date
 
     def printUserToError(self):
-        print >> sys.stderr, "\t",user.name," ",user.hostName," ",user.device," ",user.date
+        print >> sys.stderr, "\t",self.name," ",self.hostName," ",self.device," ",self.date
 
 class Feature(object):
     def __init__(self, name, app):
@@ -126,7 +126,7 @@ class App(object):
                 except:
                     print >> sys.stderr, "Error en used_users.label"
                     user.printUserToError()
-                    
+
 class Apps(object):
     def __init__(self,cfgFile):
         self.appList = []
