@@ -3,31 +3,37 @@
 licenses:
   - name: MATLAB R2018b
     type: lmutil
-    license_server: 27000@windhcp1.uco.es
+    license_server: 27002@ucolic01.ctx.uco.es
     features_to_include: MATLAB,SIMULINK,Audio_System_Toolbox,Control_Toolbox,Signal_Blocks,Neural_Network_Toolbox,GADS_Toolbox,Image_Toolbox,Optimization_Toolbox,PDE_Toolbox,Signal_Toolbox,Statistics_Toolbox,Symbolic_Toolbox,Identification_Toolbox
     monitor_users: True
     monitor_reservations: False
   - name: MATLAB R2014-R2015
     type: lmutil
-    license_server: 27000@windhcp2.uco.es
-    features_to_include: MATLAB,Image_Toolbox,PDE_Toolbox,Symbolic_Toolbox
+    license_server: 27000@ucolic02.ctx.uco.es
+    features_to_include: MATLAB,Image_Toolbox,Symbolic_Toolbox
+    monitor_users: True
+    monitor_reservations: False
+  - name: MATLAB R2012
+    type: lmutil
+    license_server: 27000@ucoad01.uco.es
+    features_to_include: MATLAB,PDE_Toolbox,Symbolic_Toolbox
     monitor_users: True
     monitor_reservations: False
   - name: MATHCAD
     type: lmutil
-    license_server: 7788@windhcp1.uco.es
+    license_server: 7788@ucolic01.ctx.uco.es
     features_to_include: MATHCAD,254,255,256,257
     monitor_users: True
     monitor_reservations: False
-  - name: AUTOCAD2017
+  - name: AUTODESK
     type: lmutil
-    license_server: 27001@windhcp1.uco.es
-    features_to_include: 86604ACD_2017_0F
+    license_server: 27001@ucolic02.ctx.uco.es
+    features_to_include: 86604ACD_2017_0F,87229AMECH_PP_2020_0F
     monitor_users: True
     monitor_reservations: False
   - name: ORIGIN2018
     type: lmutil
-    license_server: 27002@windhcp1.uco.es
+    license_server: 27002@ucolic02.ctx.uco.es
     features_to_include: OriginPro
     monitor_users: True
     monitor_reservations: False
@@ -37,20 +43,46 @@ licenses:
     features_to_include: aa_ds,aa_mcad,aa_t_me,aim_mp1,aa_r_me
     monitor_users: True
     monitor_reservations: False
-  - name: SPSS
+  - name: SPSSOLD
     type: lsmon
     license_server: windhcp2.uco.es
     features_to_include: 1200
     monitor_users: True
     monitor_reservations: False
+  - name: SPSS
+    type: lsmon
+    license_server: ucolic01.ctx.uco.es
+    features_to_include: 1200
+    monitor_users: True
+    monitor_reservations: False
   - name: GRAPHER
     type: lsmon
-    license_server: windhcp2.uco.es
+    license_server: ucolic01.ctx.uco.es
     features_to_include: Grapher
     monitor_users: True
     monitor_reservations: False
+  - name: ACAD2019-CIV3D
+    type: lmutil
+    license_server: 27000@ucolic01.ctx.uco.es
+    features_to_include: 87140CIV3D_2019_0F
+    monitor_users: True
+  - name: SOLIDWORKS
+    type: lmutil
+    license_server: 25734@ucolic01.ctx.uco.es
+    features_to_include: solidworks,cae_cosmosfloworks_elec,cae_cosmosfloworks_hvac,cae_cwadvpro,campro,edrw,elecpro,plastics_advanced,swmbd_std,swofficepremium,swpdmstd_cadeditor,swsustainability,visupro
+    monitor_users: True
+    monitor_reservations: False
+  - name: NVIDIAGRID
+    type: web
+    license_server: ucolic01.ctx.uco.es
+    prefix_url: "http://ucolic01.ctx.uco.es:8080/licserver/manageFeatureUsage_featureDetails.action?feature.featureId="
+    suffix_url: "&page=1"
+    max_url_param: 3
+    match_exist: (?:<span class=\"heading1\"><a title=\")(?P<featureName>[a-zA-Z-]+?)\"
+    match_total: (?:.+?(?=featureCount).+?(?=;));(?P<featureCount>.+?(?= <))
+    match_used: (?:.+?(?=servedInfo).+?(?=;));(?P<servedInfo>.+?(?= <))
 config:
   port: 8000
-  sleep: 5
+  sleep: 60
   lsmon_cmd: ./lsmon
   lmutil_cmd: ./lmutil lmstat -a -c

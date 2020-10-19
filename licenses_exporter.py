@@ -9,10 +9,11 @@ import time
 import sys
 import re
 import ruamel.yaml as yaml
+import requests
 
 #Licenses & config file
 CONFIG_FILE = 'config.yml'
-
+DEBUG = False
 
 class User(object):
     def __init__(self, name):
@@ -41,31 +42,74 @@ class Feature(object):
             user.printUser()
 
 class App(object):
-    def __init__(self, parent, name, server, type, include, monitor_users):
+    def __init__(self, parent, argsDict):
         self.parent = parent
-        self.name = name
-        self.server = server
-        self.type = type
-        self.include = str(include)
-        self.monitorUsers = monitor_users
+        for key,value in argsDict.items():
+            if key == 'features_to_include':
+                setattr(self,key,str(value))
+            else:    
+                setattr(self,key,value)
         self.featureList = []
         if(self.type == 'lsmon'):
             self.parse = self.parseLsmon
         elif(self.type == 'lmutil'):
             self.parse = self.parseLmutil
+        elif(self.type == 'web'):
+            self.parse = self.parseWeb
         self.online = False
+
+    def parseWeb(self):
+        self.featureList = []
+        self.online = False
+        try:
+            #Bucle para iterar segun el parametro
+            for i in range(1,self.max_url_param):
+                #Componemos la url
+                url = self.prefix_url + str(i) + self.suffix_url
+                #Realizamos el request
+                Response = requests.get(url)
+                content = Response.content
+            
+                if DEBUG:
+                    name = str(i) + ".web"
+                    file = open(name,"w")
+                    file.write(content)
+                    file.close()
+                    print "DEBUGURL: ",url
+                    print "DEBUGREGEX: ",self.match_exist
+                
+
+                #Vemos si existe algo para este parametro
+                match = re.findall(self.match_exist, content, re.MULTILINE)
+                if match:
+                    feature = Feature(match[0],self.name)
+                    self.online = True
+                    self.featureList.append(feature)
+                    #Existe luego leemos el numero total de licencias y las que estan en uso
+                    total = re.findall(self.match_total, content, re.MULTILINE)
+                    inUse = re.findall(self.match_used, content, re.MULTILINE)
+                    feature.maxLicenses = float(total[0])
+                    feature.inUse = float(inUse[0])
+                    if DEBUG:            
+                        print "Total ",feature.name,": ",feature.maxLicenses
+                        print "Inuse ",feature.name,": ",feature.inUse
+                else:
+                    if DEBUG:
+                        print "DEBUG: GRID: ",i,"nomatch. Pattern ",self.match_exist
+        except:
+            pass
 
     def parseLsmon(self):
         self.featureList = []
         self.online = False
-        output = commands.getstatusoutput(self.parent.LSMONCMD + ' ' + self.server)
+        output = commands.getstatusoutput(self.parent.LSMONCMD + ' ' + self.license_server)
         for _output in output:
             if type(_output) == type(''):
                 lines = _output.split('\n')
                 for line in lines:
                     if 'Feature name' in line:
                         aux = line.split(":",1)[1][1:-3].replace('"','')
-                        if aux in self.include.split(","):
+                        if aux in self.features_to_include.split(","):
                             feature = Feature(aux, self.name)
                             self.online = True
                             self.featureList.append(feature)
@@ -75,23 +119,23 @@ class App(object):
                         feature.maxLicenses = float(line.split(":",1)[1][1:])
                     if 'Unreserved tokens in use' in line and feature:
                         feature.inUse = float(line.split(":",1)[1][1:])
-                    if 'User name' in line and feature and self.monitorUsers:
+                    if 'User name' in line and feature and self.monitor_users:
                         user = User(line.split(":",1)[1][1:])
                         feature.userList.append(user)
-                    if 'Host name' in line and feature and self.monitorUsers:
+                    if 'Host name' in line and feature and self.monitor_users:
                         user.hostName =  line.split(":",1)[1][1:]
 
     def parseLmutil(self):
         self.featureList = []
         self.online = False
-        output = commands.getstatusoutput(self.parent.LMUTILCMD + ' ' + self.server)
+        output = commands.getstatusoutput(self.parent.LMUTILCMD + ' ' + self.license_server)
         for _output in output:
             if type(_output) == type(''):
                 lines = _output.split('\n')
                 for line in lines:
                     if 'Users of' in line:
                         r = re.search('Users of (.*):  \(Total of (.*)licenses? issued;  Total of (.*) licenses? in use\)',line)
-                        if r.group(1) in self.include.split(","):
+                        if r.group(1) in self.features_to_include.split(","):
                             feature = Feature(r.group(1), self.name)
                             self.online = True
                             feature.maxLicenses = float(r.group(2))
@@ -99,7 +143,7 @@ class App(object):
                             self.featureList.append(feature)
                         else:
                             feature = None
-                    if ', start' in line and feature and self.monitorUsers:
+                    if ', start' in line and feature and self.monitor_users:
                         r = re.search('^\s+(.*) (.*) (.*) \((.*)\) \((.*)/(.*) (.*)\), start (.*)',line)
                         user = User(r.group(1))
                         user.hostName = r.group(2)
@@ -113,7 +157,7 @@ class App(object):
 
     def updateMetric(self):
         self.parse()
-        self.parent.license_server_status.labels(app=self.name,fqdn=self.server,
+        self.parent.license_server_status.labels(app=self.name,fqdn=self.license_server,
                                                  master='true',port='port',
                                                  version='version').set(self.online)
         for feature in self.featureList:
@@ -133,9 +177,9 @@ class Apps(object):
         with open(cfgFile, 'r') as yamlFile:
             self.cfg = yaml.safe_load(yamlFile)
         for appCfg in self.cfg['licenses']:
-            app = App(self, appCfg['name'], appCfg['license_server'],
-                            appCfg['type'], appCfg['features_to_include'], appCfg['monitor_users'])
+            app = App(self, appCfg)
             self.appList.append(app)
+
         self.license_feature_used = Gauge('license_feature_used','number of licenses used',['app','name'])
         self.license_feature_issued = Gauge('license_feature_issued','max number of licenses',['app','name'])
         self.license_feature_used_users = Gauge('license_feature_used_users','license used by user',['app','name','user','host','device'])
